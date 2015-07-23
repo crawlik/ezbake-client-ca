@@ -4,6 +4,7 @@ import java.io.FileReader;
 import java.io.IOException;
 import java.math.BigInteger;
 import java.security.KeyPair;
+import java.security.Security;
 import java.text.DateFormat;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
@@ -32,6 +33,7 @@ import ezbake.clientca.cli.ClientCACommand;
 public class GenerateCertificate extends ClientCACommand {
     private static Map<String, String> ALGORITHMS;
     static {
+    	Security.addProvider(new org.bouncycastle.jce.provider.BouncyCastleProvider());
     	ALGORITHMS = new HashMap<String,String>();
     	ALGORITHMS.put("DSA", "SHA1withDSA");
     	ALGORITHMS.put("RSA", "SHA1withRSAEncryption");
@@ -46,26 +48,32 @@ public class GenerateCertificate extends ClientCACommand {
     @Option(name="-csr", usage="CSR to read", required=true)
     public String csrFile;
 
-    @Option(name="-principal", usage="User principal to create a certificate for", required=true)
-    public String principalName;
-
     @Option(name="-keypass", usage="password for certificate authority key")
     public String cakeyPass;
     
     @Option(name="-expiry", usage="expiration time")
-    public void setDate(String datestring) {
-    	DateFormat df = new SimpleDateFormat("EEE MMM dd kk:mm:ss z yyyy", Locale.ENGLISH);
-    	try {
-			expiry = df.parse(datestring);
-		} catch (ParseException e) {
-			expiry = new Date(System.currentTimeMillis() + 3600 * 24 * 365);
-		}
+    public String expiryString;
+
+    private void setDate() {
+    	if (expiryString == null) {
+    		expiry = new Date(System.currentTimeMillis() + 3600 * 24 * 365);
+    	} else {
+	    DateFormat df = new SimpleDateFormat("EEE MMM dd kk:mm:ss z yyyy", Locale.ENGLISH);
+	    try {
+    		expiry = df.parse(expiryString);
+	    } catch (ParseException e) {
+    		expiry = new Date(System.currentTimeMillis() + 3600 * 24 * 365);
+	    }
+	}
+
+	System.err.println("expiry: " + expiry);
     }
     private Date expiry;
 
-    
     @Option(name="-serial", usage="serial number")
-    public void setSerial(String serialString) {
+    public String serialString = "0";
+
+    public void setSerial() {
        serial = new BigInteger(serialString);
     }
     
@@ -73,10 +81,13 @@ public class GenerateCertificate extends ClientCACommand {
 
     @Override
     public void run() {
-        System.out.println("principal name: " + principalName);
+	setDate();
+	setSerial();
+
         X509CertificateHolder cert = null;
 		try {
 			cert = signCSR(
+
 			        readPEM(csrFile, PKCS10CertificationRequest.class),
 			        readPEM(cacertFile, X509CertificateHolder.class),
 			        new JcaPEMKeyConverter().setProvider("BC").getKeyPair(
@@ -93,7 +104,8 @@ public class GenerateCertificate extends ClientCACommand {
 
 			            readPEM(cakeyFile, PEMKeyPair.class)),
 			        expiry,
-			        serial);
+			        serial
+			);
 			System.out.write(cert.getEncoded(), 0, cert.getEncoded().length);
 		} catch (OperatorCreationException | CryptoException | IOException | CertException e) {
 			e.printStackTrace();

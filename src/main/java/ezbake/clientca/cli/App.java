@@ -33,7 +33,7 @@ public class App implements Runnable {
         CmdLineParser parser = new CmdLineParser(this, ParserProperties.defaults().withUsageWidth(120));
         try {
             parser.parseArgument(args);
-            if (help) {
+            if (help || command.help) {
                 System.out.println("usage: java -jar client-ca-2.1.jar command [options]");
                 parser.printUsage(System.out);
             } else {
