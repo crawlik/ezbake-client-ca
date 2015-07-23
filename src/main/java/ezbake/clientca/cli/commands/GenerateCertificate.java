@@ -1,31 +1,41 @@
 package ezbake.clientca.cli.commands;
 
-import ezbake.clientca.cli.ClientCACommand;
+import java.io.FileReader;
+import java.io.IOException;
+import java.math.BigInteger;
+import java.security.KeyPair;
+import java.text.DateFormat;
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.Locale;
+import java.util.Map;
 
-import org.bouncycastle.asn1.misc.MiscObjectIdentifiers;
-import org.bouncycastle.asn1.x509.BasicConstraints;
-import org.bouncycastle.asn1.x509.Certificate;
-import org.bouncycastle.asn1.x509.GeneralName;
-import org.bouncycastle.asn1.x509.GeneralNames;
-import org.bouncycastle.asn1.x509.KeyUsage;
-import org.bouncycastle.asn1.x509.SubjectKeyIdentifier;
-import org.bouncycastle.asn1.x509.X509Extensions;
-import org.bouncycastle.asn1.x509.X509Name;
-import org.bouncycastle.crypto.CryptoException
-import org.bouncycastle.jce.PKCS10CertificationRequest;
-import org.bouncycastle.jce.provider.BouncyCastleProvider;
-import org.bouncycastle.openssl.PEMReader;
-import org.bouncycastle.util.encoders.Base64;
-import org.bouncycastle.x509.X509V3CertificateGenerator;
-import org.bouncycastle.x509.extension.SubjectKeyIdentifierStructure;
-
+import org.bouncycastle.cert.CertException;
+import org.bouncycastle.cert.X509CertificateHolder;
+import org.bouncycastle.cert.X509v3CertificateBuilder;
+import org.bouncycastle.crypto.CryptoException;
+import org.bouncycastle.openssl.PEMEncryptedKeyPair;
+import org.bouncycastle.openssl.PEMKeyPair;
+import org.bouncycastle.openssl.PEMParser;
+import org.bouncycastle.openssl.jcajce.JcaPEMKeyConverter;
+import org.bouncycastle.openssl.jcajce.JcePEMDecryptorProviderBuilder;
+import org.bouncycastle.operator.OperatorCreationException;
+import org.bouncycastle.operator.jcajce.JcaContentSignerBuilder;
+import org.bouncycastle.operator.jcajce.JcaContentVerifierProviderBuilder;
+import org.bouncycastle.pkcs.PKCS10CertificationRequest;
 import org.kohsuke.args4j.Option;
 
+import ezbake.clientca.cli.ClientCACommand;
+
 public class GenerateCertificate extends ClientCACommand {
-    private static Map<String, String> ALGORITHMS = new HashMap() {{  
-        put("DSA", "SHA1withDSA");
-        put("RSA", "SHA1withRSAEncryption");
-    }}
+    private static Map<String, String> ALGORITHMS;
+    static {
+    	ALGORITHMS = new HashMap<String,String>();
+    	ALGORITHMS.put("DSA", "SHA1withDSA");
+    	ALGORITHMS.put("RSA", "SHA1withRSAEncryption");
+    }
 
     @Option(name="-ca", usage="CA Cert to read", required=true)
     public String cacertFile;
@@ -41,28 +51,54 @@ public class GenerateCertificate extends ClientCACommand {
 
     @Option(name="-keypass", usage="password for certificate authority key")
     public String cakeyPass;
+    
+    @Option(name="-expiry", usage="expiration time")
+    public void setDate(String datestring) {
+    	DateFormat df = new SimpleDateFormat("EEE MMM dd kk:mm:ss z yyyy", Locale.ENGLISH);
+    	try {
+			expiry = df.parse(datestring);
+		} catch (ParseException e) {
+			expiry = new Date(System.currentTimeMillis() + 3600 * 24 * 365);
+		}
+    }
+    private Date expiry;
+
+    
+    @Option(name="-serial", usage="serial number")
+    public void setSerial(String serialString) {
+       serial = new BigInteger(serialString);
+    }
+    
+    private BigInteger serial;
 
     @Override
     public void run() {
         System.out.println("principal name: " + principalName);
-        X509CertificateHolder cert = signCSR(
-                readPEM(csrFile, PKCS10CertificationRequest.class),
-                readPEM(cacertFile, X509CertificateHolder.class),
-                new JcaPEMKeyConverter().setProvider("BC").getKeyPair(
+        X509CertificateHolder cert = null;
+		try {
+			cert = signCSR(
+			        readPEM(csrFile, PKCS10CertificationRequest.class),
+			        readPEM(cacertFile, X509CertificateHolder.class),
+			        new JcaPEMKeyConverter().setProvider("BC").getKeyPair(
 
-                    (cakeyPass != null)  
-                  
-                    ?
+			            (cakeyPass != null)  
+			          
+			            ?
 
-                    readPEM(cakeyFile, PEMEncryptedKeyPair.class)
-                        .decryptKeyPair(new JcePEMDecryptorProviderBuilder()
-                                            .build(cakeyPass)) 
+			            readPEM(cakeyFile, PEMEncryptedKeyPair.class)
+			                .decryptKeyPair(new JcePEMDecryptorProviderBuilder()
+			                                    .build(cakeyPass.toCharArray())) 
 
-                    :
+			            :
 
-                    readPEM(cakeyFile, PEMKeyPair.class)));
-
-	System.out.write(cert.getBytes(), 0, cert.getBytes().size);
+			            readPEM(cakeyFile, PEMKeyPair.class)),
+			        expiry,
+			        serial);
+			System.out.write(cert.getEncoded(), 0, cert.getEncoded().length);
+		} catch (OperatorCreationException | CryptoException | IOException | CertException e) {
+			e.printStackTrace();
+			return;
+		}
     }
 
     public X509CertificateHolder signCSR(PKCS10CertificationRequest csr, 
@@ -70,17 +106,17 @@ public class GenerateCertificate extends ClientCACommand {
                                    KeyPair cakeys,
                                    Date endDate,
                                    BigInteger ser)
-        throws CryptoException, IOException {
+        throws CryptoException, IOException, OperatorCreationException, CertException {
 
         X509CertificateHolder cert = new X509v3CertificateBuilder(
             cacert.getSubject(),
             ser,
             new Date(),
             endDate,
-            csr.getCertificationRequestInfo().getSubject(),
+            csr.getSubject(),
             cacert.getSubjectPublicKeyInfo()
         ).build(
-            new JcaContentSignerBuilder(getSignatureAlgorithm(cakeys.getPublic().getAlgorithm())
+            new JcaContentSignerBuilder(getSignatureAlgorithm(cakeys.getPublic().getAlgorithm()))
                 .setProvider("BC")
                 .build(cakeys.getPrivate())
         );
@@ -95,11 +131,13 @@ public class GenerateCertificate extends ClientCACommand {
         return cert;
     }
 
+    @SuppressWarnings("unchecked")
     private <T> T readPEM(String filename, Class<T> klass)
         throws IOException, CryptoException {
         PEMParser pemParser = new PEMParser(new FileReader(filename));
         Object pemObject = pemParser.readObject();
-        if (pemObject instanceof T) {
+        pemParser.close();
+        if (klass.isInstance(pemObject)) {
             return (T)pemObject;
         } else {
             throw new CryptoException("trouble reading csr " + filename + 
@@ -108,7 +146,7 @@ public class GenerateCertificate extends ClientCACommand {
         }
     }
 
-    public void getSignatureAlgorithm(String algorithm) 
+    public String getSignatureAlgorithm(String algorithm) 
         throws CryptoException {
         String sigAlg = ALGORITHMS.get(algorithm);
         if (sigAlg != null) {
