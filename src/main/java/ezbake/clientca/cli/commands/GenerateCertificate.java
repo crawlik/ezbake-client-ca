@@ -13,6 +13,16 @@ import java.util.HashMap;
 import java.util.Locale;
 import java.util.Map;
 
+import org.apache.directory.api.ldap.model.cursor.CursorException;
+import org.apache.directory.api.ldap.model.cursor.EntryCursor;
+import org.apache.directory.api.ldap.model.entry.Entry;
+import org.apache.directory.api.ldap.model.exception.LdapException;
+import org.apache.directory.api.ldap.model.message.SearchScope;
+import org.apache.directory.ldap.client.api.DefaultPoolableLdapConnectionFactory;
+import org.apache.directory.ldap.client.api.LdapConnection;
+import org.apache.directory.ldap.client.api.LdapConnectionConfig;
+import org.apache.directory.ldap.client.api.LdapConnectionPool;
+import org.apache.directory.ldap.client.api.LdapNetworkConnection;
 import org.bouncycastle.cert.CertException;
 import org.bouncycastle.cert.X509CertificateHolder;
 import org.bouncycastle.cert.X509v3CertificateBuilder;
@@ -27,7 +37,6 @@ import org.bouncycastle.operator.jcajce.JcaContentSignerBuilder;
 import org.bouncycastle.operator.jcajce.JcaContentVerifierProviderBuilder;
 import org.bouncycastle.pkcs.PKCS10CertificationRequest;
 import org.kohsuke.args4j.Option;
-
 import ezbake.clientca.cli.ClientCACommand;
 
 public class GenerateCertificate extends ClientCACommand {
@@ -39,6 +48,15 @@ public class GenerateCertificate extends ClientCACommand {
     	ALGORITHMS.put("RSA", "SHA1withRSAEncryption");
     }
 
+    @Option(name="-ldaphost", usage="ldap host", required=true)
+    public String ldapHost;
+
+    @Option(name="-ldapport", usage="ldap port", required=true)
+    public int ldapPort;
+
+    @Option(name="-ldappass", usage="ldap pass", required=true)
+    public String ldapPass;
+
     @Option(name="-ca", usage="CA Cert to read", required=true)
     public String cacertFile;
 
@@ -47,6 +65,9 @@ public class GenerateCertificate extends ClientCACommand {
 
     @Option(name="-csr", usage="CSR to read", required=true)
     public String csrFile;
+
+    @Option(name="-principal", usage="User principal to create a certificate for", required=true)
+    public String principalName;
 
     @Option(name="-keypass", usage="password for certificate authority key")
     public String cakeyPass;
@@ -81,18 +102,19 @@ public class GenerateCertificate extends ClientCACommand {
 
     @Override
     public void run() {
-	setDate();
-	setSerial();
+    	setDate();
+    	setSerial();
 
         X509CertificateHolder cert = null;
 		try {
+			PKCS10CertificationRequest req = getReq();
+			System.exit(1);
 			cert = signCSR(
-
-			        readPEM(csrFile, PKCS10CertificationRequest.class),
+			        req,
 			        readPEM(cacertFile, X509CertificateHolder.class),
 			        new JcaPEMKeyConverter().setProvider("BC").getKeyPair(
 
-			            (cakeyPass != null)  
+			            (cakeyPass != null)
 			          
 			            ?
 
@@ -113,7 +135,44 @@ public class GenerateCertificate extends ClientCACommand {
 		}
     }
 
-    public X509CertificateHolder signCSR(PKCS10CertificationRequest csr, 
+    private PKCS10CertificationRequest getReq() throws IOException {
+    	String ldapName = "cn=users,cn=accounts,dc=platform,dc=infochimps";
+    	//String ldapCreds = "secret";
+    	LdapConnectionConfig config = new LdapConnectionConfig();
+    	config.setLdapHost(ldapHost);
+    	config.setLdapPort(ldapPort);
+    	config.setName(ldapName);
+    	//config.setCredentials(ldapPass);
+    	DefaultPoolableLdapConnectionFactory factory = 
+    			new DefaultPoolableLdapConnectionFactory( config );
+    	LdapConnectionPool pool = new LdapConnectionPool( factory );
+    	pool.setTestOnBorrow(true);
+    	
+    	LdapConnection connection;
+		try {
+			connection = new LdapNetworkConnection(ldapHost, ldapPort);
+			//connection.bind("cn=users,cn=accounts,dc=platform,dc=infochimps", ldapPass);
+			connection.bind();
+			//EntryCursor cursor = connection.search( "uid=jbro", "(objectclass=*)", SearchScope.ONELEVEL );
+			EntryCursor cursor = connection.search("cn=users,cn=accounts,dc=platform,dc=infochimps", "(uid=jbro)", SearchScope.ONELEVEL);
+			//org.apache.directory.api.ldap.model.cursor.SearchCursor cursor = connection.search(new org.apache.directory.api.ldap.model.message.SearchRequestImpl().setFilter("uid=jbro"));
+
+			while ( cursor.next() )
+			{
+			    Entry entry = cursor.get();
+			    System.out.println(entry);
+			}
+		} catch (LdapException | CursorException e) {
+			throw new IOException(e);
+		}
+    	
+    	connection.close();
+    	return null;
+	}
+
+
+
+	private X509CertificateHolder signCSR(PKCS10CertificationRequest csr, 
                                    X509CertificateHolder cacert,
                                    KeyPair cakeys,
                                    Date endDate,

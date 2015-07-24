@@ -50,6 +50,11 @@
     	<artifactId>bcpkix-jdk15on</artifactId>
     	<version>1.52</version>
     </dependency>
+    <dependency>
+    	<groupId>org.apache.directory.api</groupId>
+    	<artifactId>api-all</artifactId>
+    	<version>1.0.0-M31</version>
+    </dependency>
   </dependencies>
 
   <build>
