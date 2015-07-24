@@ -49,12 +49,12 @@ import ezbake.clientca.cli.ClientCACommand;
 public class GenerateCertificate extends ClientCACommand {
     private static final SecureRandom RANDOM = new SecureRandom();
 
-	private static Map<String, String> ALGORITHMS;
+        private static Map<String, String> ALGORITHMS;
     static {
-    	Security.addProvider(new org.bouncycastle.jce.provider.BouncyCastleProvider());
-    	ALGORITHMS = new HashMap<String,String>();
-    	ALGORITHMS.put("DSA", "SHA1withDSA");
-    	ALGORITHMS.put("RSA", "SHA1withRSAEncryption");
+        Security.addProvider(new org.bouncycastle.jce.provider.BouncyCastleProvider());
+        ALGORITHMS = new HashMap<String,String>();
+        ALGORITHMS.put("DSA", "SHA1withDSA");
+        ALGORITHMS.put("RSA", "SHA1withRSAEncryption");
     }
 
     @Option(name="-ca", usage="CA Cert to read", required=true)
@@ -82,16 +82,16 @@ public class GenerateCertificate extends ClientCACommand {
     public String expiryString;
 
     private void setDate() {
-    	if (expiryString == null) {
-    		expiry = new Date(System.currentTimeMillis() + 3600 * 24 * 365);
-    	} else {
-	    DateFormat df = new SimpleDateFormat("EEE MMM dd kk:mm:ss z yyyy", Locale.ENGLISH);
-	    try {
-    		expiry = df.parse(expiryString);
-	    } catch (ParseException e) {
-    		expiry = new Date(System.currentTimeMillis() + 3600 * 24 * 365);
-	    }
-	}
+        if (expiryString == null) {
+                expiry = new Date(System.currentTimeMillis() + 3600 * 24 * 365);
+        } else {
+            DateFormat df = new SimpleDateFormat("EEE MMM dd kk:mm:ss z yyyy", Locale.ENGLISH);
+            try {
+                expiry = df.parse(expiryString);
+            } catch (ParseException e) {
+                expiry = new Date(System.currentTimeMillis() + 3600 * 24 * 365);
+            }
+        }
     }
     private Date expiry;
 
@@ -103,67 +103,71 @@ public class GenerateCertificate extends ClientCACommand {
 
 
     private void writePEM(Object obj, String fileName) throws IOException {
-    	FileWriter writer= new FileWriter(fileName);
-    	JcaPEMWriter pw = new JcaPEMWriter(writer);
-    	pw.writeObject(obj);
-    	pw.close();
+        FileWriter writer= new FileWriter(fileName);
+        JcaPEMWriter pw = new JcaPEMWriter(writer);
+        pw.writeObject(obj);
+        pw.close();
     }
     
     private void init() {
-	System.out.println(cacertFile + "," + cakeyFile + "," + csrFile + "," + certFile);
-    	setDate();
-    	setSerial();
+        System.out.println(cacertFile + "," + cakeyFile + "," + csrFile + "," + certFile);
+        setDate();
+        setSerial();
     }
 
     private void writeRequest() {
-    	try {
-			KeyPair pair = randomKeyPair();
-			PKCS10CertificationRequest req = getReq(pair);
-			writePEM(pair.getPrivate(), keyFile);
-			writePEM(req, csrFile);
-		} catch (OperatorCreationException | GeneralSecurityException | IOException | CryptoException e) {
-			e.printStackTrace();
-			System.exit(1);
-		}
+        try {
+                        KeyPair pair = randomKeyPair();
+                        PKCS10CertificationRequest req = getReq(pair);
+                        writePEM(pair.getPrivate(), keyFile);
+                        writePEM(req, csrFile);
+                } catch (OperatorCreationException | GeneralSecurityException | IOException | CryptoException e) {
+                        e.printStackTrace();
+                        System.exit(1);
+                }
     }
 
     private void writeCert() {
-    	try {
-    		writePEM(
-    				signCSR(
-    						readPEM(csrFile, PKCS10CertificationRequest.class),
-    						readPEM(cacertFile, X509CertificateHolder.class),
-    						new JcaPEMKeyConverter().setProvider("BC").getKeyPair(
+        try {
+            writePEM(
+                signCSR(
+                    readPEM(csrFile, PKCS10CertificationRequest.class),
+                    readPEM(cacertFile, X509CertificateHolder.class),
+                    new JcaPEMKeyConverter()
+                    .setProvider("BC")
+                    .getKeyPair(
+                    
+                        (cakeyPass != null)
 
-    								(cakeyPass != null)
+                        ?
 
-    								?
+                        readPEM(cakeyFile, PEMEncryptedKeyPair.class)
+                        .decryptKeyPair(new JcePEMDecryptorProviderBuilder()
+                                        .build(cakeyPass.toCharArray())) 
 
-    									readPEM(cakeyFile, PEMEncryptedKeyPair.class)
-    										.decryptKeyPair(new JcePEMDecryptorProviderBuilder()
-    										.build(cakeyPass.toCharArray())) 
+                        :
 
-    								:
+                        readPEM(cakeyFile, PEMKeyPair.class)),
 
-    									readPEM(cakeyFile, PEMKeyPair.class)),
-    						expiry,
-    						serial
-    				),
-    				certFile);
-    	} catch (OperatorCreationException | CryptoException | IOException | CertException e) {
-    		e.printStackTrace();
-    		return;
-    	}
+                    expiry,
+                    serial
+                    ),
+                certFile
+                );
+        } catch (OperatorCreationException | CryptoException | IOException | CertException e) {
+                e.printStackTrace();
+                return;
+        }
     }
 
     @Override
     public void run() {
-    	init();
+        init();
 
-    	// TODO: can run writeRequest on client side and authenticate
-    	// to server side, which will write cert.
-    	writeRequest();
-    	writeCert();
+        // TODO: can run writeRequest on client side and authenticate
+        // to server side, which will write cert.
+        writeRequest();
+        writeCert();
     }
     
     private KeyPair randomKeyPair() throws GeneralSecurityException {
@@ -173,27 +177,27 @@ public class GenerateCertificate extends ClientCACommand {
     }
 
     private PKCS10CertificationRequest getReq(KeyPair pair)
-    		throws IOException, CryptoException, GeneralSecurityException, OperatorCreationException {
-    	X500Name x500Name = getX500Name(principalName);
-    	SubjectPublicKeyInfo publicKey = 
-    			SubjectPublicKeyInfo.getInstance(pair.getPublic().getEncoded());
-    	return new PKCS10CertificationRequestBuilder(x500Name, publicKey).build(getContentSigner(pair));
+                throws IOException, CryptoException, GeneralSecurityException, OperatorCreationException {
+        X500Name x500Name = getX500Name(principalName);
+        SubjectPublicKeyInfo publicKey = 
+                        SubjectPublicKeyInfo.getInstance(pair.getPublic().getEncoded());
+        return new PKCS10CertificationRequestBuilder(x500Name, publicKey).build(getContentSigner(pair));
     }
 
-	private X500Name getX500Name(String user) throws IOException {
-		String[] hostElements = InetAddress.getLocalHost().getHostName().split(",");
-		String[] domainElements = Arrays.copyOfRange(hostElements, 1, hostElements.length);
-		
-		X500NameBuilder builder = new X500NameBuilder(RFC4519Style.INSTANCE);
-		for (String element : domainElements) {
-			builder.addRDN(RFC4519Style.dc, element);
-		}
-		builder.addRDN(RFC4519Style.cn, "users");
-		builder.addRDN(RFC4519Style.uid, user);
-		return builder.build();
-	}
+        private X500Name getX500Name(String user) throws IOException {
+                String[] hostElements = InetAddress.getLocalHost().getHostName().split(",");
+                String[] domainElements = Arrays.copyOfRange(hostElements, 1, hostElements.length);
+                
+                X500NameBuilder builder = new X500NameBuilder(RFC4519Style.INSTANCE);
+                for (String element : domainElements) {
+                        builder.addRDN(RFC4519Style.dc, element);
+                }
+                builder.addRDN(RFC4519Style.cn, "users");
+                builder.addRDN(RFC4519Style.uid, user);
+                return builder.build();
+        }
 
-	private X509CertificateHolder signCSR(PKCS10CertificationRequest csr, 
+        private X509CertificateHolder signCSR(PKCS10CertificationRequest csr, 
                                    X509CertificateHolder cacert,
                                    KeyPair cakeys,
                                    Date endDate,
@@ -221,12 +225,12 @@ public class GenerateCertificate extends ClientCACommand {
         return cert;
     }
 
-	private ContentSigner getContentSigner(KeyPair keys)
-			throws OperatorCreationException, CryptoException {
-		return new JcaContentSignerBuilder(getSignatureAlgorithm(keys.getPublic().getAlgorithm()))
-		    .setProvider("BC")
-		    .build(keys.getPrivate());
-	}
+        private ContentSigner getContentSigner(KeyPair keys)
+                        throws OperatorCreationException, CryptoException {
+                return new JcaContentSignerBuilder(getSignatureAlgorithm(keys.getPublic().getAlgorithm()))
+                    .setProvider("BC")
+                    .build(keys.getPrivate());
+        }
 
     @SuppressWarnings("unchecked")
     private <T> T readPEM(String filename, Class<T> klass)
@@ -237,7 +241,7 @@ public class GenerateCertificate extends ClientCACommand {
         if (klass.isInstance(pemObject)) {
             return (T)pemObject;
         } else {
-	    Class actualClass = (pemObject == null) ? null : pemObject.getClass();
+            Class actualClass = (pemObject == null) ? null : pemObject.getClass();
             throw new CryptoException("trouble reading csr " + filename + 
                                       ": object " + pemObject + 
                                       " of wrong type " + actualClass);
