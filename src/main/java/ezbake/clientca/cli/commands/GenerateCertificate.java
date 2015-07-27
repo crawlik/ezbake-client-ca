@@ -188,7 +188,9 @@ public class GenerateCertificate extends ClientCACommand {
     }
 
         private X500Name getX500Name(String user) throws IOException {
-                String[] hostElements = InetAddress.getLocalHost().getHostName().split(",");
+	        String hostname = InetAddress.getLocalHost().getHostName();
+                String[] hostElements = hostname.split("\\.");
+		logger.trace("{}: got {} components for hostname {}", user, hostElements.length, hostname);
                 String[] domainElements = Arrays.copyOfRange(hostElements, 1, hostElements.length);
                 
                 X500NameBuilder builder = new X500NameBuilder(RFC4519Style.INSTANCE);
@@ -215,7 +217,7 @@ public class GenerateCertificate extends ClientCACommand {
             new Date(),
             endDate,
             csr.getSubject(),
-            cacert.getSubjectPublicKeyInfo()
+            csr.getSubjectPublicKeyInfo()
         ).build(
             getContentSigner(cakeys)
         );

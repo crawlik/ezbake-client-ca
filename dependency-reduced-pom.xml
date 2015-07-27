@@ -46,6 +46,237 @@
       </plugin>
     </plugins>
   </build>
+  <profiles>
+    <profile>
+      <id>rpmbuild</id>
+      <build>
+        <plugins>
+          <plugin>
+            <groupId>org.codehaus.mojo</groupId>
+            <artifactId>build-helper-maven-plugin</artifactId>
+            <version>1.7</version>
+            <executions>
+              <execution>
+                <id>parse-version</id>
+                <goals>
+                  <goal>parse-version</goal>
+                </goals>
+              </execution>
+            </executions>
+          </plugin>
+          <plugin>
+            <groupId>org.codehaus.mojo</groupId>
+            <artifactId>buildnumber-maven-plugin</artifactId>
+            <version>1.3</version>
+            <executions>
+              <execution>
+                <id>create-build-number</id>
+                <phase>validate</phase>
+                <goals>
+                  <goal>create</goal>
+                </goals>
+                <configuration>
+                  <shortRevisionLength>7</shortRevisionLength>
+                  <format>${parsedVersion.qualifier}{0,date,yyyyMMddHHmmss}.git.{1}</format>
+                  <items>
+                    <item>timestamp</item>
+                    <item>scmVersion</item>
+                  </items>
+                </configuration>
+              </execution>
+            </executions>
+            <configuration>
+              <shortRevisionLength>7</shortRevisionLength>
+              <format>${parsedVersion.qualifier}{0,date,yyyyMMddHHmmss}.git.{1}</format>
+              <items>
+                <item>timestamp</item>
+                <item>scmVersion</item>
+              </items>
+            </configuration>
+          </plugin>
+          <plugin>
+            <groupId>org.codehaus.mojo</groupId>
+            <artifactId>rpm-maven-plugin</artifactId>
+            <version>2.1.3</version>
+            <executions>
+              <execution>
+                <id>generate-rpm</id>
+                <goals>
+                  <goal>rpm</goal>
+                </goals>
+                <configuration>
+                  <name>ezbake-client-ca</name>
+                  <description>client-ca RPM</description>
+                  <group>ezbake</group>
+                  <release>${buildNumber}</release>
+                  <needarch>false</needarch>
+                  <license>ASL 2.0</license>
+                  <provides>
+                    <provide>ezbake-client-ca = 2.1</provide>
+                  </provides>
+                  <mappings>
+                    <mapping>
+                      <directory>/opt/ezbake</directory>
+                      <username>ezbake</username>
+                      <groupname>ezbake</groupname>
+                      <filemode>755</filemode>
+                      <directoryIncluded>true</directoryIncluded>
+                    </mapping>
+                    <mapping>
+                      <directory>/opt/ezbake/client-ca</directory>
+                      <username>ezbake</username>
+                      <groupname>ezbake</groupname>
+                      <filemode>755</filemode>
+                      <directoryIncluded>true</directoryIncluded>
+                    </mapping>
+                    <mapping>
+                      <directory>/opt/ezbake/client-ca/config</directory>
+                      <username>ezbake</username>
+                      <groupname>ezbake</groupname>
+                      <filemode>755</filemode>
+                      <configuration />
+                      <directoryIncluded>true</directoryIncluded>
+                    </mapping>
+                    <mapping>
+                      <directory>/opt/ezbake/client-ca/config</directory>
+                      <username>ezbake</username>
+                      <groupname>ezbake</groupname>
+                      <filemode>640</filemode>
+                      <directoryIncluded>false</directoryIncluded>
+                      <sources>
+                        <source>
+                          <location>/home/jbro/client-ca/src/main/scripts/config</location>
+                        </source>
+                      </sources>
+                    </mapping>
+                    <mapping>
+                      <directory>/opt/ezbake/client-ca/bin</directory>
+                      <username>ezbake</username>
+                      <groupname>ezbake</groupname>
+                      <filemode>755</filemode>
+                      <configuration />
+                      <directoryIncluded>true</directoryIncluded>
+                    </mapping>
+                    <mapping>
+                      <directory>/opt/ezbake/client-ca/bin</directory>
+                      <username>ezbake</username>
+                      <groupname>ezbake</groupname>
+                      <filemode>644</filemode>
+                      <directoryIncluded>false</directoryIncluded>
+                      <sources>
+                        <source>
+                          <location>target/client-ca-2.1.jar</location>
+                        </source>
+                        <softlinkSource>
+                          <location>client-ca-2.1.jar</location>
+                          <destination>client-ca.jar</destination>
+                        </softlinkSource>
+                      </sources>
+                    </mapping>
+                    <mapping>
+                      <directory>/opt/ezbake/client-ca/bin</directory>
+                      <username>ezbake</username>
+                      <groupname>ezbake</groupname>
+                      <filemode>755</filemode>
+                      <directoryIncluded>false</directoryIncluded>
+                      <sources>
+                        <source>
+                          <location>/home/jbro/client-ca/src/main/scripts/bin/client-ca</location>
+                        </source>
+                      </sources>
+                    </mapping>
+                  </mappings>
+                </configuration>
+              </execution>
+            </executions>
+            <configuration>
+              <name>ezbake-client-ca</name>
+              <description>client-ca RPM</description>
+              <group>ezbake</group>
+              <release>${buildNumber}</release>
+              <needarch>false</needarch>
+              <license>ASL 2.0</license>
+              <provides>
+                <provide>ezbake-client-ca = 2.1</provide>
+              </provides>
+              <mappings>
+                <mapping>
+                  <directory>/opt/ezbake</directory>
+                  <username>ezbake</username>
+                  <groupname>ezbake</groupname>
+                  <filemode>755</filemode>
+                  <directoryIncluded>true</directoryIncluded>
+                </mapping>
+                <mapping>
+                  <directory>/opt/ezbake/client-ca</directory>
+                  <username>ezbake</username>
+                  <groupname>ezbake</groupname>
+                  <filemode>755</filemode>
+                  <directoryIncluded>true</directoryIncluded>
+                </mapping>
+                <mapping>
+                  <directory>/opt/ezbake/client-ca/config</directory>
+                  <username>ezbake</username>
+                  <groupname>ezbake</groupname>
+                  <filemode>755</filemode>
+                  <configuration />
+                  <directoryIncluded>true</directoryIncluded>
+                </mapping>
+                <mapping>
+                  <directory>/opt/ezbake/client-ca/config</directory>
+                  <username>ezbake</username>
+                  <groupname>ezbake</groupname>
+                  <filemode>640</filemode>
+                  <directoryIncluded>false</directoryIncluded>
+                  <sources>
+                    <source>
+                      <location>/home/jbro/client-ca/src/main/scripts/config</location>
+                    </source>
+                  </sources>
+                </mapping>
+                <mapping>
+                  <directory>/opt/ezbake/client-ca/bin</directory>
+                  <username>ezbake</username>
+                  <groupname>ezbake</groupname>
+                  <filemode>755</filemode>
+                  <configuration />
+                  <directoryIncluded>true</directoryIncluded>
+                </mapping>
+                <mapping>
+                  <directory>/opt/ezbake/client-ca/bin</directory>
+                  <username>ezbake</username>
+                  <groupname>ezbake</groupname>
+                  <filemode>644</filemode>
+                  <directoryIncluded>false</directoryIncluded>
+                  <sources>
+                    <source>
+                      <location>target/client-ca-2.1.jar</location>
+                    </source>
+                    <softlinkSource>
+                      <location>client-ca-2.1.jar</location>
+                      <destination>client-ca.jar</destination>
+                    </softlinkSource>
+                  </sources>
+                </mapping>
+                <mapping>
+                  <directory>/opt/ezbake/client-ca/bin</directory>
+                  <username>ezbake</username>
+                  <groupname>ezbake</groupname>
+                  <filemode>755</filemode>
+                  <directoryIncluded>false</directoryIncluded>
+                  <sources>
+                    <source>
+                      <location>/home/jbro/client-ca/src/main/scripts/bin/client-ca</location>
+                    </source>
+                  </sources>
+                </mapping>
+              </mappings>
+            </configuration>
+          </plugin>
+        </plugins>
+      </build>
+    </profile>
+  </profiles>
   <dependencies>
     <dependency>
       <groupId>junit</groupId>
@@ -61,7 +292,9 @@
     </dependency>
   </dependencies>
   <properties>
+    <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
     <slf4j.version>1.7.6</slf4j.version>
+    <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
   </properties>
 </project>
 

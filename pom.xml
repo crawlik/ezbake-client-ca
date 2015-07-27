@@ -201,7 +201,7 @@
                   <directory>/opt/ezbake/${project.artifactId}/bin</directory>
                   <username>ezbake</username>
                   <groupname>ezbake</groupname>
-                  <filemode>644</filemode>
+                  <filemode>755</filemode>
 		  <configuration/>
                   <directoryIncluded>true</directoryIncluded>
                 </mapping>
