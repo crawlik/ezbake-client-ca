@@ -1,0 +1,6 @@
+#!/usr/bin/env bash
+
+my_src=`readlink -f ${BASH_SOURCE[0]}`
+pushd `dirname $my_src`; DIR=`pwd`; popd
+
+java -jar ${DIR}/client-ca.jar "$@"

@@ -43,10 +43,13 @@ import org.bouncycastle.operator.jcajce.JcaContentVerifierProviderBuilder;
 import org.bouncycastle.pkcs.PKCS10CertificationRequest;
 import org.bouncycastle.pkcs.PKCS10CertificationRequestBuilder;
 import org.kohsuke.args4j.Option;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import ezbake.clientca.cli.ClientCACommand;
 
 public class GenerateCertificate extends ClientCACommand {
+    Logger logger = LoggerFactory.getLogger(GenerateCertificate.class);
     private static final SecureRandom RANDOM = new SecureRandom();
 
         private static Map<String, String> ALGORITHMS;
@@ -189,8 +192,10 @@ public class GenerateCertificate extends ClientCACommand {
                 String[] domainElements = Arrays.copyOfRange(hostElements, 1, hostElements.length);
                 
                 X500NameBuilder builder = new X500NameBuilder(RFC4519Style.INSTANCE);
+		logger.trace("broke domain into {} components", domainElements.length);
                 for (String element : domainElements) {
-                        builder.addRDN(RFC4519Style.dc, element);
+		    logger.trace("adding domain dc={} to {}", element, user);
+		    builder.addRDN(RFC4519Style.dc, element);
                 }
                 builder.addRDN(RFC4519Style.cn, "users");
                 builder.addRDN(RFC4519Style.uid, user);
