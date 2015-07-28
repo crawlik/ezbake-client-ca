@@ -199,6 +199,7 @@ public class GenerateCertificate extends ClientCACommand {
 		    logger.trace("adding domain dc={} to {}", element, user);
 		    builder.addRDN(RFC4519Style.dc, element);
                 }
+                builder.addRDN(RFC4519Style.cn, "accounts");
                 builder.addRDN(RFC4519Style.cn, "users");
                 builder.addRDN(RFC4519Style.uid, user);
                 return builder.build();
