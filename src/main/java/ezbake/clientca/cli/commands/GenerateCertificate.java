@@ -86,13 +86,13 @@ public class GenerateCertificate extends ClientCACommand {
 
     private void setDate() {
         if (expiryString == null) {
-                expiry = new Date(System.currentTimeMillis() + 3600 * 24 * 365);
+                expiry = new Date(System.currentTimeMillis() + 3600 * 24 * 365 * 1000);
         } else {
             DateFormat df = new SimpleDateFormat("EEE MMM dd kk:mm:ss z yyyy", Locale.ENGLISH);
             try {
                 expiry = df.parse(expiryString);
             } catch (ParseException e) {
-                expiry = new Date(System.currentTimeMillis() + 3600 * 24 * 365);
+                expiry = new Date(System.currentTimeMillis() + 3600 * 24 * 365 * 1000);
             }
         }
     }
