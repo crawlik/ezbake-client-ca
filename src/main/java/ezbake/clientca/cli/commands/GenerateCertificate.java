@@ -73,11 +73,12 @@ public class GenerateCertificate extends ClientCACommand {
     // config
 
     private void configure() {
-        maybeLoadProperties();
+        loadProperties();
         cacertFile = propertyOrDie("client-ca.cacert.file");
         cakeyFile = propertyOrDie("client-ca.cakey.file");
-        cakeyPass = propertyOrDie("client-ca.cakey.pass");
+        cakeyPass = config.getProperty("client-ca.cakey.pass");
         csrFile = config.getProperty("client-ca.csr.file", principalName + ".csr");
+        userKeyFile = config.getProperty("client-ca.userkey.file", principalName + ".key");
     }
 
     //--------------------------------------------------------------------------------
@@ -87,11 +88,12 @@ public class GenerateCertificate extends ClientCACommand {
     private String cakeyFile;
     private String cakeyPass;
     private String csrFile;
+    private String userKeyFile;
 
     @Option(name="-u", aliases={"--user"}, usage="FreeIPA user name to create a certificate for", required=true)
     public String principalName;
     
-    @Option(name="-c", aliases={"--config"}, usage="Java properties config file")
+    @Option(name="-c", aliases={"--config"}, usage="Java properties config file", required=true)
     public String propsFile;
 
     @Option(name="-o", aliases={"--out"}, usage="output cert file")
@@ -106,7 +108,7 @@ public class GenerateCertificate extends ClientCACommand {
         try {
             KeyPair pair = randomKeyPair();
             PKCS10CertificationRequest req = getReq(pair);
-            writePEM(pair.getPrivate(), writer(cakeyFile));
+            writePEM(pair.getPrivate(), writer(userKeyFile));
             writePEM(req, writer(csrFile));
         } catch (OperatorCreationException | GeneralSecurityException | IOException | CryptoException e) {
             e.printStackTrace();
@@ -243,20 +245,22 @@ public class GenerateCertificate extends ClientCACommand {
     //--------------------------------------------------------------------------------
     // config helpers
 
-    private void maybeLoadProperties() {
+    private void loadProperties() {
         config = new Properties();
-        if (propsFile != null) {
-            try {
-                config.load(new FileReader(new File(propsFile)));
-            } catch (IOException e) {
-                logger.error("problem loading {}", propsFile);
-                System.exit(1);
-            }
-        }
+	try {
+	    config.load(new FileReader(new File(propsFile)));
+	} catch (IOException e) {
+	    logger.error("problem loading {}", propsFile);
+	    System.exit(1);
+	}
     }
 
     private String propertyOrDie(String prop) {
-        return config.getProperty(prop);
+        String result = config.getProperty(prop);
+	if (result == null) {
+	    throw new RuntimeException("could not find required property " + prop);
+	}
+	return result;
     }
 
     private Properties config;
