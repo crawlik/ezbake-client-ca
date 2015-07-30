@@ -93,8 +93,8 @@ public class GenerateCertificate extends ClientCACommand {
     @Option(name="-u", aliases={"--user"}, usage="FreeIPA user name to create a certificate for", required=true)
     public String principalName;
     
-    @Option(name="-c", aliases={"--config"}, usage="Java properties config file", required=true)
-    public String propsFile;
+    @Option(name="-c", aliases={"--config"}, usage="Java properties config file")
+    public String propsFile = "/opt/ezbake/client-ca/config/client-ca.properties";
 
     @Option(name="-o", aliases={"--out"}, usage="output cert file")
     private String certFile = "-";
