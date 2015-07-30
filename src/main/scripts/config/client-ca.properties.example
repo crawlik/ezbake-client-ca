@@ -1,0 +1,4 @@
+client-ca.cacert.file=/var/lib/ezbake/client-ca/ca.crt
+client-ca.cakey.file=/var/lib/ezbake/client-ca/ca.key
+#client-ca.cakey.pass=
+

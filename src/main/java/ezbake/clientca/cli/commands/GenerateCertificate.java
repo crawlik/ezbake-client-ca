@@ -200,7 +200,7 @@ public class GenerateCertificate extends ClientCACommand {
         return new Date(now + certTTLMillis);
     }
 
-    private String signatureAlgorithm(String algorithm) 
+    private String signatureAlgorithm(String algorithm)
         throws CryptoException {
         String sigAlg = ALGORITHMS.get(algorithm);
         if (sigAlg != null) {
