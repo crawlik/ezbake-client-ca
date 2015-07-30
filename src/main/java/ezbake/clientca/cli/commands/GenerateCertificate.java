@@ -191,11 +191,11 @@ public class GenerateCertificate extends ClientCACommand {
 	        String hostname = InetAddress.getLocalHost().getHostName();
                 String[] hostElements = hostname.split("\\.");
 		logger.trace("{}: got {} components for hostname {}", user, hostElements.length, hostname);
-                String[] domainElements = Arrays.copyOfRange(hostElements, 1, hostElements.length);
                 
                 X500NameBuilder builder = new X500NameBuilder(RFC4519Style.INSTANCE);
-		logger.trace("broke domain into {} components", domainElements.length);
-                for (String element : domainElements) {
+		logger.trace("broke domain into {} components", hostElements.length);
+		for (int i = hostElements.length - 1; i > 0; i--) {
+		    String element = hostElements[i];
 		    logger.trace("adding domain dc={} to {}", element, user);
 		    builder.addRDN(RFC4519Style.dc, element);
                 }
